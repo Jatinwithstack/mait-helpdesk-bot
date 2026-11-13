@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | MAIT Helpdesk</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-logo">MAIT</div>
+      <h2>Staff Administration</h2>
+      <p class="subtitle">Maharaja Agrasen Institute of Technology</p>
+
+      {% if error %}
+        <div class="alert-danger">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('admin_login') }}" class="auth-form">
+        <div class="form-group">
+          <label for="email">Admin Email</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            class="form-control" 
+            placeholder="admin@mait.edu"
+            value="admin@mait.edu" 
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="form-control" 
+            placeholder="••••••••" 
+            required
+          />
+        </div>
+
+        <button type="submit" class="btn-primary">Log In to Helpdesk</button>
+      </form>
+
+      <div style="margin-top: 20px; font-size: 0.85rem; color: #64748b;">
+        <a href="{{ url_for('index') }}" style="color: #0b2545; text-decoration: none; font-weight: 600;">&larr; Back to Student Chat</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | MAIT Helpdesk</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Admin Navbar -->
+  <header class="admin-navbar">
+    <div class="brand-wrapper">
+      <div class="logo-badge" style="width: 36px; height: 36px; font-size: 0.95rem;">MAIT</div>
+      <div class="brand-details">
+        <h1 style="font-size: 1.05rem;">Helpdesk Administration</h1>
+        <p style="font-size: 0.75rem;">Maharaja Agrasen Institute of Technology</p>
+      </div>
+    </div>
+    <div class="admin-nav-actions">
+      <a href="{{ url_for('index') }}" target="_blank" class="btn-nav btn-nav-outline">Student Chat &nearr;</a>
+      <a href="{{ url_for('admin_logout') }}" class="btn-nav btn-nav-danger">Log Out</a>
+    </div>
+  </header>
+
+  <main class="admin-content">
+    <!-- Flash alerts -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert-{{ 'danger' if category == 'error' else 'success' }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Top Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="label">Total Active FAQs</span>
+        <span class="value">{{ faqs|length }}</span>
+      </div>
+      <div class="stat-card alert-border">
+        <span class="label">Pending Unanswered Queries</span>
+        <span class="value">{{ unanswered|length }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Student Questions Handled</span>
+        <span class="value">{{ total_queries }}</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="admin-tabs">
+      <button class="tab-btn active" id="tabFaqBtn" onclick="switchTab('faqs')">
+        Knowledge Base FAQs <span class="badge-count">{{ faqs|length }}</span>
+      </button>
+      <button class="tab-btn" id="tabUnansweredBtn" onclick="switchTab('unanswered')">
+        Unanswered Queries <span class="badge-count" style="background: {{ '#ef4444' if unanswered|length > 0 else '#64748b' }}">{{ unanswered|length }}</span>
+      </button>
+    </div>
+
+    <!-- TAB 1: FAQs Management -->
+    <section id="sectionFaqs">
+      <div class="section-header">
+        <div>
+          <h2>Manage Knowledge Base FAQs</h2>
+          <p style="font-size: 0.85rem; color: #64748b;">These questions and answers feed the AI chatbot.</p>
+        </div>
+        <button class="btn-sm-orange" onclick="openAddFaqModal()">+ Add New FAQ</button>
+      </div>
+
+      <div class="data-table-card">
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">Category</th>
+              <th style="width: 30%;">Question</th>
+              <th style="width: 40%;">Answer</th>
+              <th style="width: 15%; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for faq in faqs %}
+              <tr>
+                <td><span class="cat-pill">{{ faq.category }}</span></td>
+                <td><strong>{{ faq.question }}</strong></td>
+                <td>{{ faq.answer }}</td>
+                <td style="text-align: right;">
+                  <div class="action-buttons" style="justify-content: flex-end;">
+                    <button 
+                      class="btn-icon-edit" 
+                      onclick="openEditFaqModal({{ faq.id }}, `{{ faq.category | e }}`, `{{ faq.question | e }}`, `{{ faq.answer | e }}`)"
+                    >Edit</button>
+                    <form method="POST" action="{{ url_for('delete_faq', faq_id=faq.id) }}" onsubmit="return confirm('Delete this FAQ?');" style="display:inline;">
+                      <button type="submit" class="btn-icon-delete">Delete</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4" style="text-align: center; color: #94a3b8; padding: 30px;">No FAQs found. Add one above!</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 2: Unanswered Queries -->
+    <section id="sectionUnanswered" style="display: none;">
+      <div class="section-header">
+        <div>
+          <h2>Unanswered Student Queries</h2>
+          <p style="font-size: 0.85rem; color: #64748b;">Questions where the bot lacked sufficient FAQ context. Convert them to FAQs with one click.</p>
+        </div>
+      </div>
+
+      <div class="data-table-card">
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">Category</th>
+              <th style="width: 45%;">Student Question</th>
+              <th style="width: 20%;">Date Received</th>
+              <th style="width: 20%; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for query in unanswered %}
+              <tr>
+                <td><span class="cat-pill">{{ query.category }}</span></td>
+                <td><strong>{{ query.question }}</strong></td>
+                <td style="color: #64748b; font-size: 0.82rem;">{{ query.created_at }}</td>
+                <td style="text-align: right;">
+                  <div class="action-buttons" style="justify-content: flex-end;">
+                    <button 
+                      class="btn-icon-convert" 
+                      onclick="openConvertModal({{ query.id }}, `{{ query.category | e }}`, `{{ query.question | e }}`)"
+                    >Answer &amp; Add FAQ</button>
+                    <form method="POST" action="{{ url_for('delete_unanswered', query_id=query.id) }}" onsubmit="return confirm('Dismiss this question?');" style="display:inline;">
+                      <button type="submit" class="btn-icon-delete">Dismiss</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="4" style="text-align: center; color: #10b981; padding: 40px; font-weight: 600;">
+                  &check; All student queries have been answered! No pending items.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ADD FAQ MODAL -->
+  <div class="modal-overlay" id="addFaqModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add New Knowledge Base FAQ</h3>
+        <button class="close-modal-btn" onclick="closeModal('addFaqModal')">&times;</button>
+      </div>
+      <form method="POST" action="{{ url_for('add_faq') }}">
+        <div class="form-group">
+          <label>Category</label>
+          <select name="category" class="form-control" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Student Question</label>
+          <input type="text" name="question" class="form-control" placeholder="e.g. How can I get a railway concession voucher?" required />
+        </div>
+        <div class="form-group">
+          <label>Official Answer</label>
+          <textarea name="answer" class="form-control" rows="4" placeholder="Provide clear instructions for students..." required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Save FAQ</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT FAQ MODAL -->
+  <div class="modal-overlay" id="editFaqModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit FAQ</h3>
+        <button class="close-modal-btn" onclick="closeModal('editFaqModal')">&times;</button>
+      </div>
+      <form id="editFaqForm" method="POST" action="">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="editCategory" name="category" class="form-control" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Question</label>
+          <input type="text" id="editQuestion" name="question" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label>Answer</label>
+          <textarea id="editAnswer" name="answer" class="form-control" rows="4" required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Update FAQ</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONVERT UNANSWERED QUERY MODAL -->
+  <div class="modal-overlay" id="convertModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Answer Query &amp; Publish as FAQ</h3>
+        <button class="close-modal-btn" onclick="closeModal('convertModal')">&times;</button>
+      </div>
+      <form id="convertForm" method="POST" action="">
+        <div class="form-group">
+          <label>Category</label>
+          <select id="convertCategory" name="category" class="form-control" required>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Student Question</label>
+          <input type="text" id="convertQuestion" name="question" class="form-control" required />
+        </div>
+        <div class="form-group">
+          <label>Staff Answer</label>
+          <textarea id="convertAnswer" name="answer" class="form-control" rows="4" placeholder="Type the official answer. Once saved, this query will be marked resolved and the AI will use this answer." required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Publish to FAQs</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>
